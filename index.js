@@ -1,7 +1,7 @@
 var request = require('request')
   , api = require('zenircbot-api')
   , zen = new api.ZenIRCBot()
-  , config = api.load_config('lastfm.json')
+  , config = api.load_config(__dirname + 'lastfm.json')
 
 require('./lib/format')
 
