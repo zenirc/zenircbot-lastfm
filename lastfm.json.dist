@@ -1,0 +1,9 @@
+{
+  "users": {
+    "username": "wraithan"
+  , "nick": "Wraithan"
+  }
+, "api_key": "lastfm api key"
+, "interval": 120
+, "channel": "#pdxbots"
+}

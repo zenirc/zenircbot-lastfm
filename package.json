@@ -1,0 +1,21 @@
+{
+  "author": "Wraithan (http://wraithan.net)",
+  "name": "zenircbot-lastfm",
+  "description": "ZenIRCBot service to that relays lastfm.",
+  "version": "0.1.0",
+  "homepage": "http://github.com/zenirc/zenircbot-lastfm",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/zenirc/zenircbot-lastfm.git"
+  },
+  "dependencies": {
+    "zenircbot-api": "~2.4.1",
+    "request": "~2.25.0"
+  },
+  "engines": {
+    "node": "*"
+  },
+  "scripts": {
+    "start": "node ./index.js"
+  }
+}
