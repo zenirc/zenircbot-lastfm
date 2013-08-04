@@ -27,7 +27,7 @@ function get_latest_track(user, cb) {
 }
 
 function display_track(err, user, track) {
-  if (!err && track['@attr'] && track['@attr'].nowplaying === 'true') {
+  if (!err && track && track['@attr'] && track['@attr'].nowplaying === 'true') {
     if (track.mbid !== user.last) {
       user.last = track.mbid
       zen.send_privmsg(
