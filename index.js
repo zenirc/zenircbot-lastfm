@@ -22,7 +22,11 @@ function get_latest_track(user, cb) {
       cb(err)
       return
     }
-    cb(null, user, body.recenttracks.track[0])
+    if (body && body.recenttracks && body.recenttracks.track && body.recenttracks.track.length > 0) {
+      cb(null, user, body.recenttracks.track[0])
+    } else {
+      cb('Body is missing stuff.')
+    }
   })
 }
 
