@@ -32,16 +32,17 @@ function get_latest_track(user, cb) {
 
 function display_track(err, user, track) {
   if (!err && track && track['@attr'] && track['@attr'].nowplaying === 'true') {
-    if (track.mbid !== user.last) {
-      user.last = track.mbid
+    var message = '{0} is listening to {1} by {2} on {3}'.format(
+                      user.nick
+                    , track.name
+                    , track.artist['#text']
+                    , track.album['#text']
+                    )
+    if (message !== user.last) {
+      user.last = message
       zen.send_privmsg(
         config.channel,
-        '{0} is listening to {1} by {2} on {3}'.format(
-            user.nick
-          , track.name
-          , track.artist['#text']
-          , track.album['#text']
-          )
+        message
       )
     }
   }
