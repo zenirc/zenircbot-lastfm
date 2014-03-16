@@ -5,14 +5,42 @@ var request = require('request')
 
 require('./lib/format')
 
+function get_list_of_users(group, cb) {
+  var params = {
+    method: 'group.getmembers'
+  , group: group
+  , api_key: config.api_key
+  , format: 'json'
+  }
+  request({
+    uri: 'https://ws.audioscrobbler.com/2.0/?'
+  , qs: params
+  , json: true
+  }, function(err, res, body) {
+    if (err) {
+      cb(err)
+      return
+    }
+    var users = []
+    if (body && body.members) {
+      body.members.user.forEach(function(user) {
+        users.push(user.name)
+      })
+    }
+    console.log('get_list_of_users calling callback with: ', users)
+    cb(null, users)
+  })
+}
+
 
 function get_latest_track(user, cb) {
   var params = {
     method: 'user.getrecenttracks'
-  , user: user.username
+  , user: user.nick
   , api_key: config.api_key
   , format: 'json'
   }
+  console.log('Looking up: ', user)
   request({
     uri: 'https://ws.audioscrobbler.com/2.0/?'
   , qs: params
@@ -32,26 +60,99 @@ function get_latest_track(user, cb) {
 
 function display_track(err, user, track) {
   if (!err && track && track['@attr'] && track['@attr'].nowplaying === 'true') {
-    var message = '{0} is listening to {1} by {2} on {3}'.format(
-                      user.nick
-                    , track.name
-                    , track.artist['#text']
-                    , track.album['#text']
-                    )
-    if (message !== user.last) {
-      user.last = message
-      zen.send_privmsg(
-        config.channel,
-        message
-      )
-    }
+    zen.redis.get('lastfm:alias:'+user.nick, function(err, nick) {
+      var name = nick || user.nick
+      zen.redis.get('lastfm:obfusticate:' + name, function(err, res) {
+        if (res) {
+          name = '[' + name.split('').join(' ') + ']'
+        }
+        var message = '{0} is listening to {1} by {2} on {3}'.format(
+                          name
+                        , track.name
+                        , track.artist['#text']
+                        , track.album['#text']
+                        )
+        if (message !== user.last) {
+          user.last = message
+          console.log(message)
+          zen.send_privmsg(
+            config.channel,
+            message
+          )
+        }
+      })
+     
+    })
   }
 }
 
-config.users.forEach(function(user, index) {
-  setTimeout(function() {
-    get_latest_track(user, display_track)
-    setInterval(get_latest_track, config.interval * 1000,
-                user, display_track)
-  }, ((config.interval/config.users.length)*(index+1)) * 1000 )
+var members = {}
+
+function main() {
+  get_list_of_users(config.group, function(err, users) {
+    if (err) {
+      console.log('Err: ', err)
+      return
+    }
+    users.forEach(function(user) {
+      if (members[user] === undefined) {
+        console.log('Found: ', user)
+        members[user] = {nick: user}
+      }
+    })
+  })
+  var user_list = Object.keys(members)
+  user_list.forEach(function(user, index) {
+    setTimeout(get_latest_track, ((60/user_list.length)*index) * 1000, members[user], display_track)
+  })
+}
+
+main()
+setInterval(function() {
+  main()
+}, 60*1000)
+
+zen.register_commands(
+  "lastfm.js",
+  [{
+    name: "!claim <lastfm_nick>",
+    description: "Aliases the lastfm_nick to the invoker's nick."
+  }, {
+    name: "!obfusticate",
+    description: "Toggles nick obfustication, so you don't get IRC pings."
+  }]
+)
+
+var filtered = zen.filter({version: 1, type: 'directed_privmsg'})
+filtered.on('data', function(msg){
+  var claim = /^claim (.*)/i.exec(msg.data.message)
+  var unclaim = /^unclaim (.*)/i.exec(msg.data.message)
+  var obfusticate = /^obfusticate$/i.exec(msg.data.message)
+  var lastfm_nick = ''
+  if (claim) {
+    lastfm_nick = claim[1].trim()
+    zen.redis.set('lastfm:alias:' + lastfm_nick, msg.data.sender, function(err, res) {
+                    zen.send_privmsg(msg.data.channel,
+                                     lastfm_nick + " -> " + msg.data.sender)
+                  })
+  } else if (unclaim) {
+    lastfm_nick = unclaim[1].trim()
+    zen.redis.del('lastfm:alias:' + lastfm_nick, function(err, res) {
+                    zen.send_privmsg(msg.data.channel,
+                                     lastfm_nick + " != " + msg.data.sender)
+                  })
+  } else if (obfusticate) {
+    var key = 'lastfm:obfusticate:' + msg.data.sender
+    zen.redis.get(key, function(err, res) {
+      if (res) {
+        zen.redis.del(key, function() {
+          zen.send_privmsg(msg.data.channel, msg.data.sender + ': obfustication disabled')
+        })
+      } else {
+        zen.redis.set(key, true, function() {
+          zen.send_privmsg(msg.data.channel, msg.data.sender + ': obfustication enabled')
+        })
+      }
+    })
+  }
 })
