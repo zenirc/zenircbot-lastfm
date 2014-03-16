@@ -88,6 +88,17 @@ function display_track(err, user, track) {
 
 var members = {}
 
+function check_users() {
+  var user_list = Object.keys(members)
+  var interval = 3000
+  if (user_list.length > 20) {
+    interval = (60000/user_list.length)
+  }
+  user_list.forEach(function(user, index) {
+    setTimeout(get_latest_track, (interval * index), members[user], display_track)
+  })
+}
+
 function main() {
   get_list_of_users(config.group, function(err, users) {
     if (err) {
@@ -100,17 +111,12 @@ function main() {
         members[user] = {nick: user}
       }
     })
+    check_users()
   })
-  var user_list = Object.keys(members)
-  user_list.forEach(function(user, index) {
-    setTimeout(get_latest_track, ((60/user_list.length)*index) * 1000, members[user], display_track)
-  })
+  setTimeout(main, (Object.keys(members).length * 3 || 10) * 1000)
 }
 
 main()
-setInterval(function() {
-  main()
-}, 60*1000)
 
 zen.register_commands(
   "lastfm.js",
