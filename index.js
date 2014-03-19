@@ -124,8 +124,8 @@ zen.register_commands(
     name: "!claim <lastfm_nick>",
     description: "Aliases the lastfm_nick to the invoker's nick."
   }, {
-    name: "!obfusticate",
-    description: "Toggles nick obfustication, so you don't get IRC pings."
+    name: "!obfuscate",
+    description: "Toggles nick obfuscation, so you don't get IRC pings."
   }]
 )
 
@@ -133,7 +133,7 @@ var filtered = zen.filter({version: 1, type: 'directed_privmsg'})
 filtered.on('data', function(msg){
   var claim = /^claim (.*)/i.exec(msg.data.message)
   var unclaim = /^unclaim (.*)/i.exec(msg.data.message)
-  var obfusticate = /^obfusticate$/i.exec(msg.data.message)
+  var obfusticate = /^obfuscate$/i.exec(msg.data.message)
   var lastfm_nick = ''
   if (claim) {
     lastfm_nick = claim[1].trim()
